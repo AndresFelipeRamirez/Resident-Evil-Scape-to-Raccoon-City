@@ -81,7 +81,7 @@ class zombiae(pygame.sprite.Sprite):
 		pygame.sprite.Sprite.__init__(self)
 		self.image = pygame.image.load(archivo).convert_alpha()
 		self.rect=self.image.get_rect()
-		self.movimiento = ["zb/zb0.png", "zb/zb1.png", "zb/zb2.png"]
+		self.movimiento = ["zc/zc0.png", "zc/zc1.png", "zc/zc2.png"]
 		self.cont_mov = 0
 
 	def reini_pos(self):
@@ -153,51 +153,69 @@ class bala(pygame.sprite.Sprite):
 #nemesis
 
 class nemesis( pygame.sprite.Sprite ):
+	def __init__( self, posX, posY ):
+		pygame.sprite.Sprite.__init__( self )
+		self.image = pygame.image.load('nemesis/nemesis1.png')
+		#self.image.set_colorkey((255,255,255))
+		self.rect = self.image.get_rect()
+		self.rect.topleft = (posX, posY)
+		self.vida = 100 #10
+		self.aparecer = False # Aparece nemesis
+		self.victoria = False # VICTORIA DEL JUEGO
+		self.sentido = 0
+		self.derrota = False # Si nemesis llega a abajo
 
-    def __init__( self, posX, posY ):
-        pygame.sprite.Sprite.__init__( self )
-        self.image = pygame.image.load('nemesis/nemesis1.png')
-        self.image.set_colorkey((255,255,255))
-        self.rect = self.image.get_rect()
+		self.cont_animacion = 0
+		self.abajo = ['nemesis/nemesis1.png', 'nemesis/nemesis2.png', 'nemesis/nemesis3.png', 'nemesis/nemesis4.png']
 
-        self.rect.topleft = (posX, posY)
+	def update(self):
+		if self.aparecer:
+			if self.rect.y >= 600 - 77:
+				puntzombi()
+			if self.rect.topleft[0] <= 0:
+				self.sentido = 0
+				self.rect.y += 10
+			if self.rect.topleft[0] >= (800 - self.rect[2]):
+				self.sentido = 1
+				self.rect.y += 10
 
-        self.dy = 0
-        self.dx = 0
+			if self.sentido == 0:
+				self.rect.x += 3
+				#self.rect.y += 1
+			else:
+				self.rect.x -= 3
+				#self.rect.y += 1
+			if not(self.cont_animacion == 4):
+				self.image = pygame.image.load(self.abajo[self.cont_animacion])
+				#self.rect = self.image.get_rect()
+				self.cont_animacion += 1
+			else:
+				self.cont_animacion = 0
 
-        self.contizq, self.contder, self.contup, self.contdown = 0, 0, 0, 0
-        self.mleft, self.mrigth, self.up, self.down = True, True, True, True
-        self.izquierda = ['Rata/rata3.png', 'Rata/rata4.png', 'Rata/rata5.png']
-        self.derecha = ['Rata/rata6.png', 'Rata/rata7.png', 'Rata/rata8.png']
-        self.abajo = ['Rata/rata0.png', 'Rata/rata1.png', 'Rata/rata2.png']
-        self.arriba = ['Rata/rata9.png', 'Rata/rata10.png', 'Rata/rata11.png']
 
-    def update(self):
+		#print self.pos
+		#self.pos = self.rect.topleft
 
-        self.pos = self.rect.topleft
+	def deshacer(self):
+		self.rect.topleft = self.pos
+		visor = pygame.display.set_mode((800, 600))
+		pygame.display.set_caption('Resident Evil')
 
-        self.rect.move_ip(self.dx,self.dy)
-
-    def deshacer(self):
-
-        self.rect.topleft = self.pos
-
-        visor = pygame.display.set_mode((800, 600))
-        pygame.display.set_caption('Resident Evil')
-
-        nemesis = nemesis(144,239)
-        grupoimagennemesis = pygame.sprite.RenderUpdates(nemesis)
-
+nemesis = nemesis(0,-77)
 
 bl=pygame.sprite.Group()
 tl=pygame.sprite.Group()
 al=pygame.sprite.Group()
 nl=pygame.sprite.Group()
-nemesis=jugador("nemesis/nemesis1.png")
+#nemesis=jugador("nemesis/nemesis1.png")
 jugl2=jugador("SpriteJill/Jill10.png")
 modi=pygame.sprite.Group()
 tl.add(jugl2)
-ll=pygame.sprite.Group()
+
+nemesisGroup = pygame.sprite.Group()
+tl.add(nemesis)
+
+#ll=pygame.sprite.Group()
 
 for i in range (10):
 	b=bloque("Sprite/vida.png")
@@ -273,6 +291,7 @@ def fondojugl2():
 #   visor.blit(jugl2,(mega_x,mega_y))
    jugl2.rect.x=mega_x
    jugl2.rect.y=mega_y
+   vector_balas = []
    tl.update()
    pygame.display.update()
    l_existe=False
@@ -286,6 +305,9 @@ def fondojugl2():
                    shootSound.play()
                laser= bala(-10,-10,"laser.png")
                laser2=bala(-10,-10,"laser.png")
+               vector_balas.append(laser)
+               vector_balas.append(laser2)
+               print "Cantidad de balas: ", len(vector_balas)
                tl.add(laser)
                tl.add(laser2)
                if modificador==1 or modificador==2 or modificador == 3:
@@ -308,11 +330,11 @@ def fondojugl2():
 
       keys= pygame.key.get_pressed()
       if keys[K_LEFT]:
-          jugl2.rect.x = jugl2.rect.x-vel
+          jugl2.rect.x = jugl2.rect.x - vel - 5
           if jugl2.rect.x <= (-60 ):
             jugl2.rect.x=ancho
       if keys[K_RIGHT]:
-            jugl2.rect.x=jugl2.rect.x+vel
+            jugl2.rect.x=jugl2.rect.x+ vel +5
             if jugl2.rect.x >= (ancho ):
                jugl2.rect.x=-60
       if keys[K_p]:
@@ -332,6 +354,26 @@ def fondojugl2():
       if keys[K_i]and sound==False:
          sound= True
          niv2.play()
+	  # IMPACTO A NEMESIS
+      posicion_impactox = nemesis.rect.x, nemesis.rect.x+60
+      posicion_impactoy = nemesis.rect.y, nemesis.rect.y-77
+      for bala_impacto in vector_balas:
+		  if bala_impacto.rect.x >= posicion_impactox[0] and bala_impacto.rect.x <= posicion_impactox[1]:
+			  if bala_impacto.rect.y <= posicion_impactoy[0] and bala_impacto.rect.y >= posicion_impactoy[1]:
+				  vector_balas.remove(bala_impacto)
+				  if not(nemesis.vida == 0):
+				  	nemesis.vida -= 1
+					print "VIDA: {0}".format(nemesis.vida)
+				  else:
+					print "GANASTE"
+					nemesis.victoria = True
+
+
+      #impactos_Nemesis = pygame.sprite.spritecollide(nemesis, tl, True)#laser, nemesisGroup, True)
+      #for imp in impactos_Nemesis:
+		#  print "si"
+
+
 
       lg= pygame.sprite.spritecollide(laser,al,True)
       for b in lg:
@@ -341,10 +383,11 @@ def fondojugl2():
          pygame.display.update()
          time.sleep(0.08)
          b.reini_pos()
-         laser.rect.x=-10
-         laser.rect.y=-10
-         laser2.rect.x=-10
-         laser2.rect.y=-10
+         laser.rect.x=-1000
+         laser.rect.y=-1000
+         laser2.rect.x=-1000
+         laser2.rect.y=-1000
+
 
       lg2= pygame.sprite.spritecollide(laser2,al,True)
       for b in lg2:
@@ -354,10 +397,10 @@ def fondojugl2():
          pygame.display.update()
          time.sleep(0.08)
          b.reini_pos()
-         laser2.rect.x=-10
-         laser2.rect.y=-10
-         laser.rect.x=-10
-         laser.rect.y=-10
+         laser2.rect.x=-1000
+         laser2.rect.y=-1000
+         laser.rect.x=-1000
+         laser.rect.y=-1000
 
       if vida==4:
           visor.blit(v4,(5,5))
@@ -410,13 +453,17 @@ def fondojugl2():
        #  laser2.rect.y=laser.rect.y-4
 
       pygame.display.flip()
+      #print " NEMESIS VICTORIA: ", nemesis.victoria
+	  # CUANDO GANA:
       if puntosjugl2 == 10:
           items= items+puntosjugl2
           pygame.display.update
           puntosjugl2=0
-          puntjugador()
-          pygame.quit()
-          sys.exit()
+          nemesis.aparecer = True
+      elif nemesis.victoria:
+		  puntjugador()
+		  pygame.quit()
+		  sys.exit()
 
 
 def mostrarIntro():
@@ -543,78 +590,18 @@ def puntjugador():
    fondo = pygame.image.load(imagenDeFondo).convert()
    visor.blit(fondo, (0,0))
    mensaje = 'Puntaje'
-   if items == 0:
-      puntaje ='1'
-   if items == 1:
-      puntaje ='2'
-      llaveflag = 1
-   if items == 2:
-      puntaje ='3'
-   if items == 3:
-      puntaje ='4'
-   if items == 4:
-      puntaje ='5'
-   if items == 5:
-      puntaje ='6'
-   if items == 6:
-      puntaje ='7'
-   if items == 7:
-      puntaje ='8'
-   if items == 8:
-      puntaje ='9'
-   if items == 9:
-      puntaje ='10'
-   if items == 10:
-      puntaje ='11'
-   if items == 11:
-      puntaje ='12'
-   if items == 12:
-      puntaje ='13'
-   if items == 13:
-      puntaje ='14'
-   if items == 14:
-      puntaje ='15'
-   if items == 15:
-      puntaje ='16'
-   if items == 16:
-      puntaje ='17'
-   if items == 17:
-      puntaje ='18'
-   if items == 18:
-      puntaje ='19'
-   if items == 19:
-      puntaje ='20'
-   if items == 20:
-      puntaje ='21'
-   if items == 21:
-      puntaje ='22'
-   if items == 22:
-      puntaje ='23'
-   if items == 23:
-      puntaje ='24'
-   if items == 24:
-      puntaje ='25'
-   if items == 25:
-      puntaje ='26'
-   if items == 26:
-      puntaje ='27'
-   if items == 27:
-      puntaje ='28'
-   if items == 28:
-      puntaje ='29'
-   if items == 29:
-      puntaje ='30'
-   if items == 30:
-      puntaje ='30'
+   puntaje = str(items + 1)
+	# CARGAR OTRA FUENTEEEEEEEEEEEEE
    texto = tipoLetra.render(mensaje, True, AMARILLO)
    texto1 = tipoLetra.render(puntaje, True, AMARILLO)
    musica.stop()
    niv2.stop()
    if sound == True:
        winnersouned.play()
+   print "MENSAJE {0} PUNTAJE: {1}".format(mensaje, puntaje)
    visor.blit(texto, (60,550,350,30))
    visor.blit(texto1, (280,550,350,30))
-   pygame.display.update()
+   pygame.display.flip()
    pausa()
 
 
@@ -974,7 +961,7 @@ while True:
 		imagenPerro2.contdown += 1
 		if imagenPerro2.contdown == 4:
 			imagenPerro2.contdown = 0
-			
+
 
 
     if imagenPerro3.rect.right > 800:
@@ -993,7 +980,7 @@ while True:
       imagenPerro3.dx=0
       imagenPerro3.contup += 1
       if imagenPerro3.contup == 4:
-        imagenPerro3.contup = 0 
+        imagenPerro3.contup = 0
     elif imagenPerro3.rect.left <505 and imagenPerro3.rect.top <55:
 		imagenPerro3.image = pygame.image.load(imagenPerro3.derecha[imagenPerro3.contder])
 		imagenPerro3.dx=1
@@ -1193,6 +1180,7 @@ while True:
     else:
         imagenJill.dx = 0
 
+	llaveflag = 1
     if imagenJill.rect.right > 780 and llaveflag == 1:
         puntjugador()
         mostrarlvl2()
@@ -1228,7 +1216,7 @@ while True:
     grupoimagenPerro3.update()
     grupoimagenRata.update()
     grupoimagenRata1.update()
-    
+
 
 
     if pygame.sprite.spritecollide(imagenJill, nivel.grupo, 0, pygame.sprite.collide_mask):
@@ -1288,10 +1276,10 @@ while True:
         pygame.quit()
         sys.exit()
 
-   
+
     nivel.actualizar(visor)
 
-    print imagenJill.pos
+    #print imagenJill.pos
 
 
     grupoimagenJill.draw(visor)
@@ -1300,5 +1288,5 @@ while True:
     grupoimagenPerro3.draw(visor)
     grupoimagenRata.draw(visor)
     grupoimagenRata1.draw(visor)
-    
+
     pygame.display.update()
